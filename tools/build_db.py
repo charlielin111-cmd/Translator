@@ -52,7 +52,9 @@ def load_cmudict(path: Path) -> dict[str, list[list[str]]]:
             line = line.strip()
             if not line or line.startswith(";;;"):
                 continue
-            parts = line.split()
+            parts = line.split("#")[0].split()
+            if len(parts) < 2:
+                continue
             word = _PRON_VARIANT.sub("", parts[0]).lower()
             prons.setdefault(word, []).append(parts[1:])
     return prons
@@ -108,7 +110,7 @@ def main() -> None:
             if args.limit and stats["rows"] > args.limit:
                 break
             word = (row.get("word") or "").strip()
-            translation = (row.get("translation") or "").strip()
+            translation = (row.get("translation") or "").replace("\\n", "\n").strip()
             if not word or not translation or len(word.split()) > 4:
                 continue
             word_lc = word.lower()
@@ -124,6 +126,8 @@ def main() -> None:
                 k1, k2, src = kk.ipa_to_kk_approx(row["phonetic"]), None, "approx"
             else:
                 k1, k2, src = None, None, "none"
+            if src == "none" and frq == 0:      # 無音標又不在詞頻表：多為片語/專有名詞雜訊
+                continue
             stats[src] += 1
 
             word_rows.append((

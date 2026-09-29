@@ -93,6 +93,8 @@ def arpabet_to_kk(phones: list[str]) -> str:
 
     # 2. 找出母音位置，依最大首音原則決定每個音節的起點
     vowel_idx = [i for i, p in enumerate(phones) if _is_vowel(p)]
+    if not vowel_idx:               # 無母音的擬聲詞（hmm、shh）
+        return "".join(_CONSONANTS[_split_stress(p)[0]] for p in phones) + (syllabic_final or "")
     starts: list[int] = []
     for n, vi in enumerate(vowel_idx):
         if n == 0:
