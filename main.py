@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import logging.handlers
+import os
 import sys
 import threading
 import time
@@ -105,7 +106,8 @@ class App(QObject):
 
     def _capture_worker(self, cursor: QPoint) -> None:
         try:
-            result = selection.capture()
+            timeout = int(os.environ.get("HOTKEYDICT_COPY_TIMEOUT_MS", self.cfg.copy_timeout_ms))
+            result = selection.capture(timeout / 1000)
         except Exception:
             log.exception("capture failed")
             result = selection.CaptureResult(selection.CLIPBOARD_BUSY)
@@ -133,6 +135,8 @@ class App(QObject):
             t = time.perf_counter()
             entry = self.dict.lookup(result.text)
             result.timings["lookup"] = time.perf_counter() - t
+            if os.environ.get("HOTKEYDICT_LOG_WORDS"):      # 診斷用，平常不記錄使用者查過的字
+                log.info("captured=%r -> %s", result.text[:40], entry.word if entry else None)
             if entry:
                 self.popup.show_entry(entry, cursor)
             else:

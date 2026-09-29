@@ -32,6 +32,7 @@ class Config:
     fallback_hotkeys: list[str] = field(default_factory=lambda: ["ctrl+`", "alt+q"])
     font_size: int = 14
     popup_timeout_sec: int = 0          # 0 = 不自動關閉
+    copy_timeout_ms: int = 800          # 送出 Ctrl+C 後等待剪貼簿更新的上限（冷啟動的 Office 偶爾超過 400ms）
     db_path: str = ""                   # 空字串 = <app_dir>/data/dict.db
 
     def resolved_db_path(self) -> Path:

@@ -16,6 +16,9 @@ CURSOR_OFFSET = (12, 18)
 MAX_WIDTH = 420
 MAX_LINES = 6
 
+# 繁中 Windows 的預設 UI 字型（微軟正黑體）把重音符號 ˋ ˏ 畫得很寬，音標與英文單字改用 Segoe UI
+_LATIN_FONT = "font-family:'Segoe UI','Arial'"
+
 _POS_PREFIX = re.compile(r"^([A-Za-z]+\.)\s*")
 
 
@@ -39,15 +42,15 @@ def compute_popup_pos(cursor: tuple[int, int], size: tuple[int, int],
 
 def entry_html(entry: Entry) -> tuple[str, str]:
     """回傳 (標題 HTML, 內文 HTML)。"""
-    head = f'<span style="font-size:1.45em;font-weight:600">{html.escape(entry.word)}</span>'
+    head = f'<span style="{_LATIN_FONT};font-size:1.45em;font-weight:600">{html.escape(entry.word)}</span>'
     if entry.lemma_from and entry.lemma_from.lower() != entry.word.lower():
-        head = f'<span style="color:#9aa0a6">{html.escape(entry.lemma_from)} → </span>' + head
+        head = f'<span style="{_LATIN_FONT};color:#9aa0a6">{html.escape(entry.lemma_from)} → </span>' + head
     if entry.kk:
         approx = "≈" if entry.kk_src == "approx" else ""
         kk = f"{approx}[{html.escape(entry.kk)}]"
         if entry.kk_alt:
             kk += f" / [{html.escape(entry.kk_alt)}]"
-        head += f'&nbsp;&nbsp;<span style="color:#8ab4f8">{kk}</span>'
+        head += f'&nbsp;&nbsp;<span style="{_LATIN_FONT};color:#8ab4f8">{kk}</span>'
 
     lines = [ln.strip() for ln in entry.translation.splitlines() if ln.strip()]
     body = []

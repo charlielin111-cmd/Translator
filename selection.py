@@ -16,7 +16,7 @@ log = logging.getLogger(__name__)
 
 MAX_BACKUP_BYTES = 16 * 1024 * 1024
 BACKUP_TIME_BUDGET = 0.100      # 秒
-COPY_TIMEOUT = 0.400            # 秒
+COPY_TIMEOUT = 0.800            # 秒（實際值由 config.copy_timeout_ms 傳入）
 POLL_INTERVAL = 0.010           # 秒
 OPEN_RETRIES = 10
 
