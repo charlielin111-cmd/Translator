@@ -50,6 +50,19 @@ WORDS = {"tk": "running", "chrome": "philosophy", "edge": "resilient",
          "word": "quantum", "pdfx": "opportunity"}
 
 
+def start_app(env: dict) -> subprocess.Popen:
+    """啟動被測程式：預設 python main.py；設定 HOTKEYDICT_EXE 則改測打包後的 exe。"""
+    exe = os.environ.get("HOTKEYDICT_EXE")
+    if exe:
+        if os.environ.get("HOTKEYDICT_CLEAN_ENV"):      # 只留系統目錄，確認不依賴任何 Python 安裝
+            keep = ("SystemRoot", "APPDATA", "LOCALAPPDATA", "TEMP", "TMP", "USERPROFILE",
+                    "HOTKEYDICT_LOG_WORDS")
+            env = {k: v for k, v in env.items() if k in keep}
+            env["PATH"] = os.path.join(env.get("SystemRoot", r"C:\Windows"), "System32")
+        return subprocess.Popen([exe], cwd=str(Path(exe).parent), env=env)
+    return subprocess.Popen([PY, "main.py"], cwd=ROOT, env=env)
+
+
 # ------------------------------------------------------------------ 小工具
 def title_of(hwnd) -> str:
     buf = ctypes.create_unicode_buffer(256)
@@ -368,7 +381,7 @@ def main() -> None:
 
     original = ps("Get-Clipboard -Raw")
     env = {**os.environ, "PYTHONUTF8": "1", "HOTKEYDICT_LOG_WORDS": "1"}
-    app = subprocess.Popen([PY, "main.py"], cwd=ROOT, env=env)
+    app = start_app(env)
     time.sleep(3)
     results = []
     try:

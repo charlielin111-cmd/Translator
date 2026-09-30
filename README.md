@@ -18,6 +18,16 @@ python -m venv .venv
 - 系統匣右鍵 → 設定…：可改快捷鍵（點一下輸入框後直接按組合鍵）、浮窗字體大小、浮窗停留秒數，儲存後立即生效。
 - 設定檔：`%APPDATA%\HotkeyDict\config.json`；記錄檔：`%APPDATA%\HotkeyDict\hotkeydict.log`（含各階段耗時）。
 
+## 打包成單一執行檔
+
+```powershell
+.venv\Scripts\python tools\build_exe.py
+```
+
+產出 `dist\HotkeyDict.exe`（約 46MB）與 `dist\data\dict.db`（約 30MB）。**兩者要放在同一個資料夾**，字典檔沒有嵌入 exe。
+不需要安裝 Python；第一次啟動要解壓縮，約需 3 秒才會註冊好快捷鍵。找不到字典檔時會跳出錯誤視窗。
+本工具不做開機自動啟動。
+
 ## 資料來源
 
 - 釋義：[ECDICT](https://github.com/skywind3000/ECDICT)（MIT），建庫時以 OpenCC `s2twp` 轉為繁體。

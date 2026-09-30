@@ -41,7 +41,7 @@ def main() -> None:
     docs = c.make_docs(workdir)
     original = c.ps("Get-Clipboard -Raw")
     env = {**os.environ, "PYTHONUTF8": "1", "HOTKEYDICT_LOG_WORDS": "1"}
-    app = subprocess.Popen([c.PY, "main.py"], cwd=c.ROOT, env=env)
+    app = c.start_app(env)
     time.sleep(3)
     try:
         pids = c.tree_pids(app)
