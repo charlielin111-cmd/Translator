@@ -22,6 +22,7 @@ import textclean
 from dictionary import Dictionary
 from hotkey import HotkeyManager
 from popup import Popup
+from settings import SettingsDialog
 from vocab import VocabBook
 
 log = logging.getLogger("hotkeydict")
@@ -61,6 +62,7 @@ class App(QObject):
         self.popup = Popup(cfg.font_size, cfg.popup_timeout_sec)
         self.vocab = VocabBook(config.user_dir() / "vocab.db")
         self._current_entry = None
+        self._settings_open = False
         self.hotkeys = HotkeyManager()
         self.bridge = Bridge()
         self._busy = False
@@ -80,6 +82,7 @@ class App(QObject):
         self.hotkey_action = self._menu.addAction("")
         self.hotkey_action.setEnabled(False)
         self._menu.addSeparator()
+        self._menu.addAction("設定…", self.open_settings)
         self._menu.addAction("匯出生字本…", self.export_vocab)
         self._menu.addAction("結束", qapp.quit)
         self.tray.setContextMenu(self._menu)
@@ -100,6 +103,23 @@ class App(QObject):
         if active != self.cfg.hotkey:
             self.tray.showMessage("HotkeyDict", f"{self.cfg.hotkey} 已被占用，改用 {active}",
                                   QSystemTrayIcon.MessageIcon.Information, 6000)
+
+    # ---- 設定
+    def open_settings(self) -> None:
+        if self._settings_open:
+            return
+        self._settings_open = True
+        self.popup.hide_popup()
+        self.hotkeys.unregister()       # 全域快捷鍵會先攔下按鍵，錄製快捷鍵前必須先解除
+        try:
+            dialog = SettingsDialog(self.cfg)
+            if dialog.exec():
+                self.cfg = dialog.result_config()
+                config.save(self.cfg)
+                self.popup.apply_settings(self.cfg.font_size, self.cfg.popup_timeout_sec)
+        finally:
+            self.register_hotkey()
+            self._settings_open = False
 
     # ---- 生字本
     def on_star(self) -> None:

@@ -85,11 +85,10 @@ class Popup(QWidget):
         self._hide_timer.timeout.connect(self.hide_popup)
         self._hook = w.MouseClickHook(self._on_global_click)
 
-        card = QFrame(self)
-        card.setObjectName("card")
-        card.setStyleSheet(
-            "#card{background:#202124;border:1px solid #5f6368;border-radius:10px;}"
-            f"QLabel{{color:#e8eaed;font-size:{font_size}pt;background:transparent;}}")
+        self._card = QFrame(self)
+        self._card.setObjectName("card")
+        self._apply_style(font_size)
+        card = self._card
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.addWidget(card)
@@ -118,6 +117,16 @@ class Popup(QWidget):
         inner.addLayout(row)
         inner.addWidget(self._body)
         self.winId()        # 先建立原生視窗，才能設定擴充樣式
+
+    def _apply_style(self, font_size: int) -> None:
+        self._card.setStyleSheet(
+            "#card{background:#202124;border:1px solid #5f6368;border-radius:10px;}"
+            f"QLabel{{color:#e8eaed;font-size:{font_size}pt;background:transparent;}}")
+
+    def apply_settings(self, font_size: int, timeout_sec: int) -> None:
+        """設定變更後即時套用（字體大小、自動關閉秒數）。"""
+        self._timeout_ms = max(0, timeout_sec) * 1000
+        self._apply_style(font_size)
 
     # ---- 顯示內容
     def show_entry(self, entry: Entry, cursor: QPoint, starred: bool = False) -> None:
