@@ -80,13 +80,19 @@ def guard() -> None:
         raise SystemExit(f"ABORT: foreground is not a compat test window: {t!r}")
 
 
-def ensure_focus(hwnd: int, attempts: int = 3) -> None:
-    """前景不是測試視窗時重新聚焦；多次失敗才中止（安全檢查，避免按鍵送錯視窗）。"""
+def ensure_focus(hwnd: int, attempts: int = 3) -> bool:
+    """前景不是測試視窗時重新聚焦；多次失敗才中止（安全檢查，避免按鍵送錯視窗）。
+
+    回傳是否發生過重新聚焦（重新聚焦後鍵盤焦點可能落在別的控制項，該輪結果不可靠）。
+    """
+    refocused = False
     for _ in range(attempts):
         if MARK in title_of(w.foreground_window()).lower():
-            return
+            return refocused
+        refocused = True
         focus(hwnd)
     guard()
+    return refocused
 
 
 def focus(hwnd: int, tries: int = 6) -> bool:
@@ -267,7 +273,7 @@ root.after(600000, root.destroy); root.mainloop()
 
 # ------------------------------------------------------------------ 主流程
 def run_one(name: str, docs: dict[str, Path], workdir: Path, shots: Path | None,
-            repeat: int, app_pids: set[int], on_iter=None) -> dict:
+            repeat: int, app_pids: set[int], on_iter=None, expect_kind: str | None = None) -> dict:
     res = {"target": name, "word": WORDS[name]}
     tgt = Target(name, docs.get(name, workdir / "compat_test_tk.txt"), workdir)
     tgt.start()
@@ -294,7 +300,7 @@ def run_one(name: str, docs: dict[str, Path], workdir: Path, shots: Path | None,
         bt = w.vk_from_char("`")
         oks, latencies, iters = 0, [], []
         for i in range(repeat):
-            ensure_focus(hwnd)
+            refocused = ensure_focus(hwnd)
             ps("Set-Clipboard -Value 'KEEP-ME'")
             LOG.write_text("", encoding="utf-8") if i == 0 else None
             before = LOG.read_text(encoding="utf-8").count("status=")
@@ -312,6 +318,7 @@ def run_one(name: str, docs: dict[str, Path], workdir: Path, shots: Path | None,
             last = lines[-1] if lines else ""
             cap = [ln for ln in text.splitlines() if "captured=" in ln]
             res["status"] = last.split("status=")[1].split()[0] if last else "no log"
+            res["kind"] = last.split("kind=")[1].split()[0] if "kind=" in last else None
             res["captured"] = cap[-1].split("captured=")[1] if cap else None
             if "total=" in last:
                 latencies.append(float(last.split("total=")[1].split("ms")[0]))
@@ -320,10 +327,15 @@ def run_one(name: str, docs: dict[str, Path], workdir: Path, shots: Path | None,
             res["popup"] = app_visible_popups(app_pids)
             if i == 0 and shots:
                 screenshot(str(shots / f"{name}.png"))
-            good = (res["status"] == "ok" and res["clipboard_ok"] and res["focus_ok"]
-                    and res["popup"] and WORDS[name] in (res["captured"] or ""))
+            if expect_kind:
+                good = (res["kind"] == expect_kind and res["clipboard_ok"] and res["focus_ok"]
+                        and res["popup"])
+            else:
+                good = (res["status"] == "ok" and res["clipboard_ok"] and res["focus_ok"]
+                        and res["popup"] and WORDS[name] in (res["captured"] or ""))
             oks += good
-            iters.append(f"{res['status']}/{latencies[-1] if latencies else '-'}ms/{res['captured']}")
+            iters.append(f"{res['status']}/{latencies[-1] if latencies else '-'}ms/{res['captured']}"
+                         + ("/REFOCUSED" if refocused else ""))
             w.send_keys([(w.VK_ESCAPE, False), (w.VK_ESCAPE, True)])
             time.sleep(0.3)
             if on_iter:
@@ -343,7 +355,11 @@ def main() -> None:
     ap.add_argument("targets", nargs="*", default=["chrome", "edge", "word", "pdfx"])
     ap.add_argument("--shots", type=Path)
     ap.add_argument("--repeat", type=int, default=1)
+    ap.add_argument("--word", help="覆寫 tk 目標的文字（測試查無此字、過長等提示）")
+    ap.add_argument("--expect-kind", help="預期的結果類別：entry/not_found/too_long/no_selection/busy")
     args = ap.parse_args()
+    if args.word:
+        WORDS["tk"] = args.word
 
     workdir = Path(tempfile.mkdtemp(prefix="compat_docs_"))
     docs = make_docs(workdir)
@@ -358,7 +374,8 @@ def main() -> None:
     try:
         for name in args.targets:
             pids = tree_pids(app)
-            results.append(run_one(name, docs, workdir, args.shots, args.repeat, pids))
+            results.append(run_one(name, docs, workdir, args.shots, args.repeat, pids,
+                                   expect_kind=args.expect_kind))
     finally:
         kill_tree(app)
         if original:

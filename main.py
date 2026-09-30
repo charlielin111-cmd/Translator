@@ -115,33 +115,38 @@ class App(QObject):
 
     def on_captured(self, result: selection.CaptureResult, cursor: QPoint) -> None:
         t = time.perf_counter()
+        kind = "error"
         try:
-            self._show_result(result, cursor)
+            kind = self._show_result(result, cursor)
         finally:
             result.timings["lookup+show"] = time.perf_counter() - t
             self._busy = False
             total = (time.perf_counter() - self._t_trigger) * 1000
             parts = " ".join(f"{k}={v * 1000:.0f}" for k, v in result.timings.items())
-            log.info("status=%s total=%.0fms %s", result.status, total, parts)
+            log.info("status=%s kind=%s total=%.0fms %s", result.status, kind, total, parts)
 
-    def _show_result(self, result: selection.CaptureResult, cursor: QPoint) -> None:
+    def _show_result(self, result: selection.CaptureResult, cursor: QPoint) -> str:
+        """顯示結果並回傳類別（entry / not_found / too_long / no_selection / busy），供日誌與測試使用。"""
         if result.status == selection.CLIPBOARD_BUSY:
             self.popup.show_message("剪貼簿忙碌中，請再試一次", cursor)
-        elif result.status != selection.OK or not result.text:
+            return "busy"
+        if result.status != selection.OK or not result.text:
             self.popup.show_message("沒有反白文字", cursor)
-        elif textclean.is_too_long(result.text):
+            return "no_selection"
+        if textclean.is_too_long(result.text):
             self.popup.show_message("選取內容過長，請只反白單字", cursor)
-        else:
-            t = time.perf_counter()
-            entry = self.dict.lookup(result.text)
-            result.timings["lookup"] = time.perf_counter() - t
-            if os.environ.get("HOTKEYDICT_LOG_WORDS"):      # 診斷用，平常不記錄使用者查過的字
-                log.info("captured=%r -> %s", result.text[:40], entry.word if entry else None)
-            if entry:
-                self.popup.show_entry(entry, cursor)
-            else:
-                shown = textclean.normalize(result.text) or result.text.strip()
-                self.popup.show_message(f"查無此字：{shown[:40]}", cursor)
+            return "too_long"
+        t = time.perf_counter()
+        entry = self.dict.lookup(result.text)
+        result.timings["lookup"] = time.perf_counter() - t
+        if os.environ.get("HOTKEYDICT_LOG_WORDS"):      # 診斷用，平常不記錄使用者查過的字
+            log.info("captured=%r -> %s", result.text[:40], entry.word if entry else None)
+        if entry:
+            self.popup.show_entry(entry, cursor)
+            return "entry"
+        shown = textclean.normalize(result.text) or result.text.strip()
+        self.popup.show_message(f"查無此字：{shown[:40]}", cursor)
+        return "not_found"
 
 
 def main() -> int:

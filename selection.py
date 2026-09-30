@@ -18,6 +18,8 @@ MAX_BACKUP_BYTES = 16 * 1024 * 1024
 BACKUP_TIME_BUDGET = 0.100      # 秒
 COPY_TIMEOUT = 0.800            # 秒（實際值由 config.copy_timeout_ms 傳入）
 POLL_INTERVAL = 0.010           # 秒
+RETRY_AFTER = 0.300             # 秒：這段時間沒有變化就補送一次 Ctrl+C
+SETTLE_TIMEOUT = 0.250          # 序號改變後等待文字寫入的上限（秒）
 OPEN_RETRIES = 10
 
 # GDI handle 類與顯示用格式：不是 HGLOBAL，無法以 bytes 備份
@@ -211,14 +213,28 @@ def capture(copy_timeout: float = COPY_TIMEOUT) -> CaptureResult:
         t = time.perf_counter()
         w.send_copy()
         deadline = time.perf_counter() + copy_timeout
+        retry_at = time.perf_counter() + RETRY_AFTER
+        changed_at: float | None = None
         while time.perf_counter() < deadline:
+            # 目標程式開啟剪貼簿的瞬間若被別的程式（剪貼簿歷史、監聽程式）占用，會直接放棄複製；
+            # 一段時間沒有變化就補送一次 Ctrl+C（重複複製同一段選取內容是無害的）
+            if retry_at and time.perf_counter() >= retry_at and                     w.user32.GetClipboardSequenceNumber() == seq0:
+                w.send_copy()
+                retry_at = 0.0
+                timings["retried"] = 1.0
             if w.user32.GetClipboardSequenceNumber() != seq0:
                 changed = True
-                break
+                if changed_at is None:
+                    changed_at = time.perf_counter()
+                # 有些程式先 EmptyClipboard（序號已增加）才寫入資料，序號一變就讀會讀到空的；
+                # 讀不到文字時再等一小段，超過 SETTLE_TIMEOUT 仍沒有文字才視為非文字內容
+                text = _read_text()
+                if text and text.strip():
+                    break
+                if time.perf_counter() - changed_at > SETTLE_TIMEOUT:
+                    break
             time.sleep(POLL_INTERVAL)
         timings["copy_wait"] = time.perf_counter() - t
-        if changed:
-            text = _read_text()
     finally:
         if changed:
             t = time.perf_counter()
