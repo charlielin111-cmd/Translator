@@ -35,7 +35,7 @@ python tools/build_exe.py      # 先打包
 python tools/make_release.py   # 產生 dist/HotkeyDict-win64.zip（約 59MB）
 ```
 
-zip 內含 `HotkeyDict/HotkeyDict.exe`、`data/dict.db`、`使用說明.txt`、`NOTICES.txt`（放在 `release/`，會一併收進去）。
+zip 內含 `HotkeyDict/HotkeyDict.exe`、`data/dict.db`、`使用說明.txt`、`NOTICES.txt`、`LICENSE-ECDICT.txt`、`LICENSE-CMUdict.txt`（都放在 `release/`，會一併收進去）。
 對方解壓縮後雙擊 exe 即可。exe 沒有數位簽章，第一次執行 Windows 會出現「已保護您的電腦」，點「其他資訊 → 仍要執行」。
 
 ## 資料來源

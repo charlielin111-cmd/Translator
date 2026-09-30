@@ -4,14 +4,17 @@ HotkeyDict — 第三方資料與元件聲明
 本程式使用下列資料與元件。各自的著作權與授權屬於原作者。
 
 1. ECDICT（英漢字典資料）
-   作者：skywind3000　授權：MIT License
+   著作權：Copyright (c) 2025 Linwei（skywind3000）　授權：MIT License
    https://github.com/skywind3000/ECDICT
+   授權全文：LICENSE-ECDICT.txt
    用途：中文釋義、詞形變化對照。釋義已由簡體轉為繁體（OpenCC s2twp 轉換）。
 
 2. CMU Pronouncing Dictionary（美式發音字典）
-   作者：Carnegie Mellon University　授權：BSD-style license
+   著作權：Copyright (C) 1993-2015 Carnegie Mellon University　授權：BSD-style license
    https://github.com/cmusphinx/cmudict
+   授權全文：LICENSE-CMUdict.txt
    用途：發音資料。程式依規則將 ARPAbet 轉換為 KK 音標；轉換結果可能與紙本字典略有差異。
+   （data/dict.db 內含由此字典轉換而來的資料，依授權條款於此附上著作權聲明與免責聲明。）
 
 3. Qt for Python（PySide6）
    作者：The Qt Company　授權：LGPL v3
@@ -22,4 +25,4 @@ HotkeyDict — 第三方資料與元件聲明
    作者：Python Software Foundation　授權：PSF License
    https://www.python.org/
 
-【待補】ECDICT 的 MIT 授權全文與 CMUdict 的 BSD 授權全文，需隨散布檔一併附上（見專案說明）。
+ECDICT 與 CMUdict 的授權全文（LICENSE-ECDICT.txt、LICENSE-CMUdict.txt）與本檔放在同一個資料夾。
