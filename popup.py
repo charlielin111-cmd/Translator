@@ -7,7 +7,8 @@ import re
 
 from PySide6.QtCore import QPoint, Qt, QTimer, Signal
 from PySide6.QtGui import QGuiApplication
-from PySide6.QtWidgets import QApplication, QFrame, QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (QApplication, QFrame, QHBoxLayout, QLabel, QPushButton,
+                               QVBoxLayout, QWidget)
 
 import winapi as w
 from dictionary import Entry
@@ -69,6 +70,7 @@ def entry_html(entry: Entry) -> tuple[str, str]:
 class Popup(QWidget):
     shown = Signal()
     hidden = Signal()
+    star_clicked = Signal()         # 使用者點了 ★（加入/移除生字本）
 
     def __init__(self, font_size: int = 14, timeout_sec: int = 0):
         super().__init__(None, Qt.WindowType.Tool
@@ -100,19 +102,38 @@ class Popup(QWidget):
         self._body.setTextFormat(Qt.TextFormat.RichText)
         self._body.setWordWrap(True)
         self._body.setMaximumWidth(MAX_WIDTH)
-        inner.addWidget(self._head)
+        self._star = QPushButton("☆")
+        self._star.setFlat(True)
+        self._star.setFocusPolicy(Qt.FocusPolicy.NoFocus)      # 浮窗不可取得焦點
+        self._star.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._star.setToolTip("加入／移除生字本")
+        self._star.setStyleSheet("QPushButton{color:#fdd663;border:none;background:transparent;"
+                                 "font:16pt 'Segoe UI Symbol';padding:0 2px;}"
+                                 "QPushButton:hover{color:#ffffff;}")
+        self._star.clicked.connect(self.star_clicked)
+        row = QHBoxLayout()
+        row.setSpacing(10)
+        row.addWidget(self._head, 1)
+        row.addWidget(self._star, 0, Qt.AlignmentFlag.AlignTop)
+        inner.addLayout(row)
         inner.addWidget(self._body)
         self.winId()        # 先建立原生視窗，才能設定擴充樣式
 
     # ---- 顯示內容
-    def show_entry(self, entry: Entry, cursor: QPoint) -> None:
+    def show_entry(self, entry: Entry, cursor: QPoint, starred: bool = False) -> None:
         head, body = entry_html(entry)
-        self._present(head, body, cursor)
+        self.set_starred(starred)
+        self._present(head, body, cursor, show_star=True)
 
     def show_message(self, text: str, cursor: QPoint) -> None:
-        self._present(f'<span style="color:#e8eaed">{html.escape(text)}</span>', "", cursor)
+        self._present(f'<span style="color:#e8eaed">{html.escape(text)}</span>', "", cursor,
+                      show_star=False)
 
-    def _present(self, head: str, body: str, cursor: QPoint) -> None:
+    def set_starred(self, starred: bool) -> None:
+        self._star.setText("★" if starred else "☆")
+
+    def _present(self, head: str, body: str, cursor: QPoint, show_star: bool) -> None:
+        self._star.setVisible(show_star)
         self._head.setText(head)
         self._body.setText(body)
         self._body.setVisible(bool(body))

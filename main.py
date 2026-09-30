@@ -11,7 +11,9 @@ import time
 
 from PySide6.QtCore import QObject, QPoint, Qt, Signal
 from PySide6.QtGui import QColor, QCursor, QFont, QIcon, QPainter, QPixmap
-from PySide6.QtWidgets import QApplication, QMenu, QMessageBox, QSystemTrayIcon
+from pathlib import Path
+
+from PySide6.QtWidgets import QApplication, QFileDialog, QMenu, QMessageBox, QSystemTrayIcon
 
 import config
 import selection
@@ -20,6 +22,7 @@ import textclean
 from dictionary import Dictionary
 from hotkey import HotkeyManager
 from popup import Popup
+from vocab import VocabBook
 
 log = logging.getLogger("hotkeydict")
 
@@ -56,6 +59,8 @@ class App(QObject):
         super().__init__()
         self.cfg, self.dict = cfg, dictionary
         self.popup = Popup(cfg.font_size, cfg.popup_timeout_sec)
+        self.vocab = VocabBook(config.user_dir() / "vocab.db")
+        self._current_entry = None
         self.hotkeys = HotkeyManager()
         self.bridge = Bridge()
         self._busy = False
@@ -65,6 +70,7 @@ class App(QObject):
         self.hotkeys.triggered.connect(self.on_hotkey)
         self.hotkeys.escape_pressed.connect(self.popup.hide_popup)
         self.bridge.captured.connect(self.on_captured)
+        self.popup.star_clicked.connect(self.on_star)
         self.popup.shown.connect(lambda: self.hotkeys.set_escape_enabled(True))
         self.popup.hidden.connect(lambda: self.hotkeys.set_escape_enabled(False))
 
@@ -74,6 +80,7 @@ class App(QObject):
         self.hotkey_action = self._menu.addAction("")
         self.hotkey_action.setEnabled(False)
         self._menu.addSeparator()
+        self._menu.addAction("匯出生字本…", self.export_vocab)
         self._menu.addAction("結束", qapp.quit)
         self.tray.setContextMenu(self._menu)
         self.tray.show()
@@ -93,6 +100,22 @@ class App(QObject):
         if active != self.cfg.hotkey:
             self.tray.showMessage("HotkeyDict", f"{self.cfg.hotkey} 已被占用，改用 {active}",
                                   QSystemTrayIcon.MessageIcon.Information, 6000)
+
+    # ---- 生字本
+    def on_star(self) -> None:
+        if self._current_entry is not None:
+            self.popup.set_starred(self.vocab.toggle(self._current_entry))
+
+    def export_vocab(self) -> None:
+        default = str(Path.home() / "Documents" / "生字本.csv")
+        path, _ = QFileDialog.getSaveFileName(None, "匯出生字本", default, "CSV (*.csv)")
+        if not path:
+            return
+        try:
+            n = self.vocab.export_csv(Path(path))
+            self.tray.showMessage("HotkeyDict", f"已匯出 {n} 個單字", QSystemTrayIcon.MessageIcon.Information, 4000)
+        except OSError as exc:
+            QMessageBox.warning(None, "HotkeyDict", f"匯出失敗：{exc}")
 
     # ---- 流程
     def on_hotkey(self) -> None:
@@ -142,7 +165,8 @@ class App(QObject):
         if os.environ.get("HOTKEYDICT_LOG_WORDS"):      # 診斷用，平常不記錄使用者查過的字
             log.info("captured=%r -> %s", result.text[:40], entry.word if entry else None)
         if entry:
-            self.popup.show_entry(entry, cursor)
+            self._current_entry = entry
+            self.popup.show_entry(entry, cursor, starred=self.vocab.contains(entry.word))
             return "entry"
         shown = textclean.normalize(result.text) or result.text.strip()
         self.popup.show_message(f"查無此字：{shown[:40]}", cursor)
