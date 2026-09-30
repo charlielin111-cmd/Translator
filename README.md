@@ -14,7 +14,7 @@ python -m venv .venv
 
 - 預設快捷鍵 **Alt+`**（反引號鍵）。被占用時依序嘗試 `Ctrl+`` 與 `Alt+Q`，實際使用的組合會顯示在系統匣選單。
 - 點擊浮窗外部或按 Esc 關閉浮窗。系統匣圖示右鍵 → 結束。
-- 浮窗右上角的 ☆/★ 可加入或移除**生字本**（存在 `%APPDATA%\HotkeyDictocab.db`）；系統匣右鍵 → 匯出生字本… 可輸出 CSV（UTF-8 含 BOM，Excel 可直接開啟）。
+- 浮窗右上角的 ☆/★ 可加入或移除**生字本**（存在 `%APPDATA%/HotkeyDict/vocab.db`）；系統匣右鍵 → 匯出生字本… 可輸出 CSV（UTF-8 含 BOM，Excel 可直接開啟）。
 - 設定檔：`%APPDATA%\HotkeyDict\config.json`；記錄檔：`%APPDATA%\HotkeyDict\hotkeydict.log`（含各階段耗時）。
 
 ## 資料來源
