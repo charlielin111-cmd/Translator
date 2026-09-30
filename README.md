@@ -28,6 +28,16 @@ python -m venv .venv
 不需要安裝 Python；第一次啟動要解壓縮，約需 3 秒才會註冊好快捷鍵。找不到字典檔時會跳出錯誤視窗。
 本工具不做開機自動啟動。
 
+### 給別人使用：單一 zip
+
+```powershell
+python tools/build_exe.py      # 先打包
+python tools/make_release.py   # 產生 dist/HotkeyDict-win64.zip（約 59MB）
+```
+
+zip 內含 `HotkeyDict/HotkeyDict.exe`、`data/dict.db`、`使用說明.txt`、`NOTICES.txt`（放在 `release/`，會一併收進去）。
+對方解壓縮後雙擊 exe 即可。exe 沒有數位簽章，第一次執行 Windows 會出現「已保護您的電腦」，點「其他資訊 → 仍要執行」。
+
 ## 資料來源
 
 - 釋義：[ECDICT](https://github.com/skywind3000/ECDICT)（MIT），建庫時以 OpenCC `s2twp` 轉為繁體。
